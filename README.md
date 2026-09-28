@@ -32,11 +32,13 @@ BRIGHT_DATA_API_KEY="your-key" python3 tool.py --live "US and Canada software co
 python3 -m unittest -v
 ```
 
-The live command makes one `POST /search/company` Instant query and may incur usage charges. It uses `source: linkedin_company`, `view: summary`, and a maximum page size of 100. Credentials are read from the environment, never saved. The programmatic `search_companies` function accepts a key so applications can inject it without putting secrets on the command line.
+The live command makes one `POST /search/company` Instant query and may incur usage charges. It uses `source: linkedin_company`, `view: summary`, and requests a maximum of 10 results, matching the documented safe page size. When 10 documents are returned, output marks `result_limit_reached`; this means results may be capped, not that the API confirmed additional matches. Credentials are read from the environment, never saved. The programmatic `search_companies` function accepts a key so applications can inject it without putting secrets on the command line. Requests are not automatically retried because repeating a billable request may duplicate usage.
 
 ## Outputs
 
-JSON includes returned company count, country counts, employee-size bands, a limitation note, and (for live queries) the API's response metadata. Missing/invalid employee ranges are `unknown`; country counts refer only to returned records.
+JSON includes returned company count, country counts, employee-size bands, a limitation note, and (for live queries) the API's response metadata and `result_limit_reached` flag. Size bands use the midpoint of each returned low/high employee range as a heuristic; `>1000 midpoint` means the computed midpoint exceeds 1,000. Missing/invalid employee ranges are `unknown`; country counts refer only to returned records. `coverage_percent` describes index/query response coverage, not the share of the real-world market; group counts are incomplete when index coverage is partial.
+
+On live HTTP/network failure, the CLI writes a JSON object to stderr with an `error` containing a stable `code`, sanitized `message`, and `retryable: false`, then exits 1. Success JSON remains on stdout. No automatic retry is made.
 
 ## Differentiation
 
