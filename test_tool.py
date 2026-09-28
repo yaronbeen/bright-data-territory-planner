@@ -17,6 +17,14 @@ class TerritoryPlannerTests(unittest.TestCase):
         self.assertEqual(result["country_counts"], {"GB": 1, "US": 2})
         self.assertEqual(result["size_band_counts"]["51-200"], 1)
 
+    def test_midpoint_threshold_boundary_is_unambiguous(self):
+        result = plan_territories([
+            {"company_size_from": 900, "company_size_to": 1100},
+            {"company_size_from": 1001, "company_size_to": 1001},
+        ])
+        self.assertEqual(result["size_band_counts"]["201-1000"], 1)
+        self.assertEqual(result["size_band_counts"][">1000 midpoint"], 1)
+
     def test_missing_or_invalid_size_is_unknown_not_zero(self):
         result = plan_territories([{"name": "A", "company_size_from": "bad"}])
         self.assertEqual(result["size_band_counts"]["unknown"], 1)
@@ -36,6 +44,30 @@ class TerritoryPlannerTests(unittest.TestCase):
         self.assertIn(b'"view": "summary"', request.data)
         self.assertIn(b'"limit": 10', request.data)
         self.assertNotIn(b'"limit": 100', request.data)
+
+    def test_output_discloses_midpoint_heuristic_and_limit_reached(self):
+        from tool import main
+        from contextlib import redirect_stdout
+        from io import StringIO
+        response = {"documents": [{"data": {}}] * 10, "meta": {}}
+        with patch("tool.search_companies", return_value=response), patch.dict("os.environ", {"BRIGHT_DATA_API_KEY": "secret"}), patch("sys.argv", ["tool.py", "--live", "query"]), redirect_stdout(StringIO()) as output:
+            main()
+        result = __import__("json").loads(output.getvalue())
+        self.assertTrue(result["result_limit_reached"])
+        self.assertIn("midpoint", result["decision_note"].lower())
+
+    def test_live_cli_errors_are_structured_and_do_not_retry_or_leak_secrets(self):
+        from contextlib import redirect_stderr
+        from io import StringIO
+        from urllib.error import URLError
+        from tool import main
+        with patch("tool.search_companies", side_effect=URLError("secret-token")), patch.dict("os.environ", {"BRIGHT_DATA_API_KEY": "secret-token"}), patch("sys.argv", ["tool.py", "--live", "query"]), redirect_stderr(StringIO()) as error:
+            with self.assertRaises(SystemExit) as exit_error:
+                main()
+        payload = __import__("json").loads(error.getvalue())
+        self.assertEqual(exit_error.exception.code, 1)
+        self.assertFalse(payload["error"]["retryable"])
+        self.assertNotIn("secret-token", error.getvalue())
 
 
 if __name__ == "__main__":
