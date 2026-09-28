@@ -58,4 +58,6 @@ Use the API only with authorized account access and in accordance with Bright Da
 
 ## Bright Data
 
+This project is an independent demonstration and is not affiliated with, endorsed by, or an official product of Bright Data.
+
 Powered by [Bright Data Business Search](https://brightdata.com/products/business-search). MIT licensed.
