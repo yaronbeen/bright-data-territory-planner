@@ -19,11 +19,11 @@ def plan_territories(records):
             bands["unknown"] += 1
             continue
         bands["1-50" if midpoint <= 50 else "51-200" if midpoint <= 200 else "201-1000" if midpoint <= 1000 else "1000+"] += 1
-    return {"company_count": len(records), "country_counts": dict(sorted(countries.items())), "size_band_counts": dict(sorted(bands.items())), "decision_note": "Use returned counts to draft territory hypotheses; Business Search matched counts and coverage are not a census."}
+    return {"company_count": len(records), "country_counts": dict(sorted(countries.items())), "size_band_counts": dict(sorted(bands.items())), "decision_note": "Counts describe only returned records. Business Search coverage_percent is index/query response coverage, not the share of the real-world market; grouping counts are incomplete when index coverage is partial."}
 
 
 def search_companies(query, api_key):
-    payload = {"source": "linkedin_company", "mode": "instant", "query": query, "offset": 0, "limit": 100, "view": "summary"}
+    payload = {"source": "linkedin_company", "mode": "instant", "query": query, "offset": 0, "limit": 10, "view": "summary"}
     request = Request("https://api.brightdata.com/search/company", data=json.dumps(payload).encode(), headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"})
     with urlopen(request, timeout=45) as response:
         data = json.load(response)

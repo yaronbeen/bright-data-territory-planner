@@ -34,6 +34,8 @@ class TerritoryPlannerTests(unittest.TestCase):
         self.assertEqual(request.full_url, "https://api.brightdata.com/search/company")
         self.assertIn(b'"source": "linkedin_company"', request.data)
         self.assertIn(b'"view": "summary"', request.data)
+        self.assertIn(b'"limit": 10', request.data)
+        self.assertNotIn(b'"limit": 100', request.data)
 
 
 if __name__ == "__main__":
